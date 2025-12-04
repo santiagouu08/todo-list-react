@@ -1,6 +1,5 @@
 {
   "homepage": "https://santiagouu08.github.io/todo_lis_editar",
-
   "name": "todo-list-react",
   "private": true,
   "version": "0.0.0",
@@ -15,6 +14,10 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "firebase": "^12.6.0",
+    "mongoose": "^9.0.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
@@ -34,6 +37,20 @@
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.12",
     "vite": "^7.1.2"
+  },
+  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
+  "main": "eslint.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/santiagouu08/todo_list_editar.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/santiagouu08/todo_list_editar/issues"
   }
-  
 }

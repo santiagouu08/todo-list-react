@@ -1,66 +1,79 @@
+import { useState, useEffect } from "react";
 import TodoItem from "./TodoItem";
-import { useState } from "react";
+
+import {
+  addTask,
+  deleteTaskById,
+  updateTaskById,
+  listenTasks
+} from "./services/tasksService";
 
 export default function App() {
   const [tareas, setTareas] = useState([]);
   const [input, setInput] = useState("");
 
-  const agregarTarea = () => {
-    if (input.trim()) {
-      setTareas([
-        ...tareas,
-        { id: Date.now(), text: input.trim(), completed: false, editing: false },
-      ]);
-      setInput("");
-    }
+  // 🔹 Escuchar tareas en tiempo real desde Firestore
+  useEffect(() => {
+    const unsubscribe = listenTasks((tasks) => {
+      setTareas(tasks);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // 🔹 Agregar tarea
+  const agregarTarea = async () => {
+    if (!input.trim()) return;
+
+    await addTask(input.trim());
+    setInput("");
   };
 
+  // 🔹 Cambiar completado
   const toggleCompleted = (id) => {
-    setTareas(
-      tareas.map((tarea) =>
-        tarea.id === id
-          ? { ...tarea, completed: !tarea.completed }
-          : tarea
-      )
-    );
+    const tarea = tareas.find((t) => t.id === id);
+    updateTaskById(id, { completed: !tarea.completed });
   };
 
+  // 🔹 Eliminar tarea
   const eliminarTarea = (id) => {
-    setTareas(tareas.filter((tarea) => tarea.id !== id));
+    deleteTaskById(id);
   };
 
-  // ✅ Iniciar edición
+  // 🔹 Iniciar edición
   const iniciarEdicion = (id) => {
     setTareas(
-      tareas.map((tarea) =>
-        tarea.id === id ? { ...tarea, editing: true } : tarea
+      tareas.map((t) =>
+        t.id === id ? { ...t, editing: true } : t
       )
     );
   };
 
-  // ✅ Guardar edición
+  // 🔹 Guardar edición
   const guardarEdicion = (id, nuevoTexto) => {
+    updateTaskById(id, { text: nuevoTexto });
     setTareas(
-      tareas.map((tarea) =>
-        tarea.id === id
-          ? { ...tarea, text: nuevoTexto.trim(), editing: false }
-          : tarea
+      tareas.map((t) =>
+        t.id === id ? { ...t, editing: false } : t
       )
     );
   };
 
-  // ✅ Cancelar edición
+  // 🔹 Cancelar edición
   const cancelarEdicion = (id) => {
     setTareas(
-      tareas.map((tarea) =>
-        tarea.id === id ? { ...tarea, editing: false } : tarea
+      tareas.map((t) =>
+        t.id === id ? { ...t, editing: false } : t
       )
     );
   };
 
   return (
     <div className="max-w-md mx-auto mt-10 p-2 rounded shadow">
-      <h1 className="text-3xl font-bold mb-5 text-center">LISTA DE TAREAS</h1>
+      <h1 className="text-3xl font-bold mb-5 text-center">
+        LISTA DE TAREAS
+      </h1>
+
       <div className="flex gap-3 mb-5">
         <input
           className="flex-1 p-2 border rounded"
