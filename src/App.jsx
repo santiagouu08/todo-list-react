@@ -1,22 +1,33 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { db } from "./firebase";
+import { collection, addDoc } from "firebase/firestore";
 
 function App() {
   const [tareas, setTareas] = useState([]);
   const [input, setInput] = useState("");
 
-  const agregarTarea = () => {
-    if (input.trim() === "") return;
+const agregarTarea = async () => {
+  if (input.trim() === "") return;
 
+  try {
     const nuevaTarea = {
-      id: Date.now(),
       texto: input,
       completada: false,
+      fecha: new Date(),
     };
 
+    // 🔥 GUARDAR EN FIREBASE
+    await addDoc(collection(db, "tareas"), nuevaTarea);
+
+    // (opcional) actualizar UI local
     setTareas([nuevaTarea, ...tareas]);
+
     setInput("");
-  };
+  } catch (error) {
+    console.error("Error guardando tarea:", error);
+  }
+};
 
   const toggleTarea = (id) => {
     setTareas(
