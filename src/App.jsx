@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { db } from "./firebase";
+import { db, auth } from "./firebase";
 import {
   collection,
   addDoc,
@@ -8,27 +8,49 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  query,
+  where
 } from "firebase/firestore";
+import {
+  onAuthStateChanged,
+  signOut
+} from "firebase/auth";
+import Login from "./Login";
 
 function App() {
   const [tareas, setTareas] = useState([]);
   const [input, setInput] = useState("");
+  const [user, setUser] = useState(null); // ✅ FALTABA
 
-  // 🔥 CARGAR EN TIEMPO REAL DESDE FIREBASE
+  // 🔐 detectar usuario
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "tareas"), (snapshot) => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 🔥 cargar tareas por usuario (tiempo real)
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(
+      collection(db, "tareas"),
+      where("userId", "==", user.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const tareasFirebase = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-
       setTareas(tareasFirebase);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
-  // ➕ AGREGAR TAREA
+  // ➕ agregar tarea
   const agregarTarea = async () => {
     if (input.trim() === "") return;
 
@@ -36,6 +58,7 @@ function App() {
       await addDoc(collection(db, "tareas"), {
         texto: input,
         completada: false,
+        userId: user.uid, // 🔥 clave
         fecha: new Date(),
       });
 
@@ -45,11 +68,10 @@ function App() {
     }
   };
 
-  // ✅ TOGGLE COMPLETADA (EN FIREBASE)
+  // ✅ toggle
   const toggleTarea = async (id, estadoActual) => {
     try {
-      const tareaRef = doc(db, "tareas", id);
-      await updateDoc(tareaRef, {
+      await updateDoc(doc(db, "tareas", id), {
         completada: !estadoActual,
       });
     } catch (error) {
@@ -57,7 +79,7 @@ function App() {
     }
   };
 
-  // 🗑️ ELIMINAR TAREA (EN FIREBASE)
+  // 🗑 eliminar
   const eliminarTarea = async (id) => {
     try {
       await deleteDoc(doc(db, "tareas", id));
@@ -66,19 +88,32 @@ function App() {
     }
   };
 
+  // 🔐 proteger app
+  if (!user) {
+    return <Login setUser={setUser} />;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-red-500 flex items-center justify-center p-4">
       <div className="w-full max-w-md backdrop-blur-xl bg-white/80 rounded-2xl shadow-2xl p-6">
 
-        <h1 className="text-3xl font-bold text-center mb-6">
-          ✨ Mis Tareas
-        </h1>
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">Mis Tareas</h1>
+
+          <button
+            onClick={() => signOut(auth)}
+            className="text-sm text-red-500"
+          >
+            Cerrar sesión
+          </button>
+        </div>
 
         {/* INPUT */}
         <div className="flex gap-2 mb-5">
           <input
             type="text"
-            placeholder="Escribe una tarea..."
+            placeholder="Escribe una tarea"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && agregarTarea()}
@@ -136,7 +171,7 @@ function App() {
           </AnimatePresence>
         </div>
 
-        {/* EMPTY STATE */}
+        {/* EMPTY */}
         {tareas.length === 0 && (
           <p className="text-center text-gray-400 mt-4">
             No hay tareas aún 👀
